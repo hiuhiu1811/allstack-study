@@ -3,6 +3,8 @@
 Website hỗ trợ học tập và công việc: lịch cá nhân, nhập lịch bằng chat (không dùng AI), biên bản họp, ghi chú.
 Các phần Nhóm, Công cụ, Khóa học, Pomodoro sẽ làm ở các giai đoạn sau.
 
+Web chạy tại: https://allstack-study.vercel.app
+
 ## Công nghệ
 - Next.js (giao diện + máy chủ), chạy trên Vercel
 - Supabase (cơ sở dữ liệu + đăng nhập Google/email)
