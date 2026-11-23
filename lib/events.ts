@@ -1,101 +1,16 @@
-// Chuyển qua lại giữa "bản nháp" trong form và dòng dữ liệu sự kiện,
-// và xử lý sửa/hủy/xóa cho sự kiện lặp lại (chỉ buổi này / từ buổi này / tất cả).
+// Sửa/hủy/xóa sự kiện (kể cả sự kiện lặp: chỉ buổi này / từ buổi này / tất cả). Chạy ở trình duyệt.
+// Phần bản nháp nằm ở lib/draft.ts, được xuất lại ở đây để các trang cũ không phải đổi.
 
-import { addDays, diffDays, isoDate, isoTime, toIso } from "./dates.ts";
-import type { Parsed, Repeat } from "./parser.ts";
-import { store, type NewEvent } from "./store.ts";
-import type { CalEvent, Kind } from "./types.ts";
+import { addDays, diffDays, isoDate, isoTime } from "./dates.ts";
+import { draftFromEvent, fields, timesOn } from "./draft.ts";
+import { store } from "./store.ts";
+import type { Draft } from "./draft.ts";
+import type { CalEvent } from "./types.ts";
 
-export interface Draft {
-  title: string;
-  kind: Kind;
-  date: string;
-  endDate: string; // "" = trong ngày
-  allDay: boolean;
-  start: string; // "" khi cả ngày
-  end: string;
-  location: string;
-  note: string;
-  remind: number | null;
-  repeat: Repeat;
-  repeatUntil: string;
-}
+export { emptyDraft, draftFromParsed, draftFromEvent, previewTimes, rowsFromDraft } from "./draft.ts";
+export type { Draft } from "./draft.ts";
 
 export type Scope = "one" | "future" | "all";
-
-export function emptyDraft(date: string): Draft {
-  return {
-    title: "", kind: "cn", date, endDate: "", allDay: false, start: "08:00", end: "", location: "", note: "",
-    remind: null, repeat: "none", repeatUntil: addDays(date, 84),
-  };
-}
-
-export function draftFromParsed(p: Parsed): Draft {
-  const allDay = !p.start;
-  return {
-    title: p.title, kind: p.kind, date: p.date, endDate: p.endDate ?? "", allDay,
-    start: p.start ?? "", end: p.end ?? "", location: p.location, note: p.note,
-    remind: p.remindMinutes, repeat: p.repeat, repeatUntil: addDays(p.date, p.repeat === "daily" ? 30 : 84),
-  };
-}
-
-export function draftFromEvent(e: CalEvent): Draft {
-  const date = isoDate(e.start_at);
-  let endDate = "";
-  let end = "";
-  if (e.end_at) {
-    const ed = isoDate(e.end_at);
-    if (e.all_day) endDate = ed > date ? ed : "";
-    else {
-      if (ed > date) endDate = ed;
-      end = isoTime(e.end_at);
-    }
-  }
-  return {
-    title: e.title, kind: e.kind, date, endDate, allDay: e.all_day, start: e.all_day ? "" : isoTime(e.start_at), end,
-    location: e.location, note: e.note, remind: e.remind_minutes, repeat: "none", repeatUntil: addDays(date, 84),
-  };
-}
-
-/** Thời gian bắt đầu/kết thúc của bản nháp đặt vào một ngày cụ thể. */
-function timesOn(d: Draft, date: string): Pick<CalEvent, "start_at" | "end_at" | "all_day"> {
-  const span = d.endDate && d.endDate > d.date ? diffDays(d.date, d.endDate) : 0;
-  const endDay = addDays(date, span);
-  if (d.allDay || !d.start) {
-    return { start_at: toIso(date, null), end_at: span ? toIso(endDay, null) : null, all_day: true };
-  }
-  let endAt: string | null = null;
-  if (d.end) endAt = toIso(endDay, d.end);
-  else if (span) endAt = toIso(endDay, d.start);
-  if (endAt && endAt <= toIso(date, d.start)) endAt = null;
-  return { start_at: toIso(date, d.start), end_at: endAt, all_day: false };
-}
-
-function fields(d: Draft) {
-  return {
-    title: d.title.trim() || "(Không tiêu đề)", kind: d.kind, location: d.location.trim(), note: d.note.trim(),
-    remind_minutes: d.remind,
-  };
-}
-
-/** Một bản nháp xem trước để kiểm tra trùng lịch. */
-export function previewTimes(d: Draft) {
-  return { ...timesOn(d, d.date), cancelled: false };
-}
-
-/** Tạo các dòng cần lưu. Sự kiện lặp được tách thành từng buổi có chung series_id (tối đa 200 buổi). */
-export function rowsFromDraft(d: Draft): NewEvent[] {
-  const base = { ...fields(d), cancelled: false, done: false };
-  if (d.repeat === "none") return [{ ...base, ...timesOn(d, d.date), series_id: null }];
-  const step = d.repeat === "daily" ? 1 : 7;
-  const until = d.repeatUntil && d.repeatUntil >= d.date ? d.repeatUntil : addDays(d.date, step * 12);
-  const series = crypto.randomUUID();
-  const rows: NewEvent[] = [];
-  for (let day = d.date; day <= until && rows.length < 200; day = addDays(day, step)) {
-    rows.push({ ...base, ...timesOn(d, day), series_id: series });
-  }
-  return rows;
-}
 
 async function targets(ev: CalEvent, scope: Scope): Promise<CalEvent[]> {
   if (scope === "one" || !ev.series_id) return [ev];

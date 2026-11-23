@@ -18,6 +18,17 @@ export default function LoginPage() {
     if (user || demo) router.replace("/");
   }, [user, demo, router]);
 
+  // Google/Supabase báo lỗi qua địa chỉ khi quay về web (sai Client ID, thiếu địa chỉ chuyển hướng...)
+  useEffect(() => {
+    const raw = window.location.search.slice(1) + "&" + window.location.hash.slice(1);
+    const q = new URLSearchParams(raw);
+    const desc = q.get("error_description") || q.get("error");
+    if (desc) {
+      setMsg({ ok: false, text: "Đăng nhập chưa xong: " + viError(desc.replace(/\+/g, " ")) });
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
+
   if (!supabase) return null;
 
   const google = async () => {
@@ -80,6 +91,8 @@ function viError(m: string): string {
   if (/invalid login/i.test(m)) return "Sai email hoặc mật khẩu.";
   if (/not confirmed/i.test(m)) return "Email chưa được xác nhận. Mở hộp thư và bấm link xác nhận.";
   if (/already registered/i.test(m)) return "Email này đã có tài khoản, hãy đăng nhập.";
+  if (/provider is not enabled|unsupported provider/i.test(m)) return "Chưa bật đăng nhập Google trong Supabase (Authentication > Providers > Google).";
+  if (/redirect_uri_mismatch/i.test(m)) return "Google từ chối vì địa chỉ chuyển hướng chưa khớp. Kiểm tra lại mục Authorized redirect URIs trên Google Cloud.";
   if (/rate limit/i.test(m)) return "Gửi quá nhiều lần, chờ ít phút rồi thử lại.";
   return m;
 }

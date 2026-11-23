@@ -6,7 +6,9 @@ import { EventForm } from "@/components/EventDialogs.tsx";
 import { formatVN, ymd } from "@/lib/dates.ts";
 import { draftFromParsed, rowsFromDraft, type Draft } from "@/lib/events.ts";
 import { findMilestones, parseEvent } from "@/lib/parser.ts";
+import { callApi } from "@/lib/profile.ts";
 import { store } from "@/lib/store.ts";
+import { supabase } from "@/lib/supabase.ts";
 
 type Mode = "lich" | "minutes" | "note";
 
@@ -74,9 +76,20 @@ export default function ChatPage() {
       const lines = t.split(/\n+/).map((s) => s.trim()).filter(Boolean);
       const out: Omit<Msg, "id">[] = [{ from: "me", text: t }];
       for (const line of lines) {
-        const p = parseEvent(line);
+        let p = parseEvent(line);
+        let viaAi = false;
+        // AI dự phòng (mặc định tắt): chỉ khi không thấy ngày và máy chủ có khóa GEMINI_API_KEY
+        if (!p.foundDate && supabase) {
+          try {
+            const r = await callApi<{ enabled?: boolean; result?: typeof p | null }>("/api/ai/doc-lich", "POST", { text: line, tz: Intl.DateTimeFormat().resolvedOptions().timeZone });
+            if (r.result) { p = r.result; viaAi = true; }
+          } catch {
+            /* lỗi thì giữ kết quả của bộ đọc theo mẫu */
+          }
+        }
         let say = lines.length > 1 ? `“${line}”: ` : "";
-        if (p.confident) say += "Mình đọc được như sau, kiểm tra rồi bấm Lưu:";
+        if (viaAi) say += "AI dự phòng đã đọc giúp ngày giờ. Bạn kiểm tra kỹ rồi bấm Lưu:";
+        else if (p.confident) say += "Mình đọc được như sau, kiểm tra rồi bấm Lưu:";
         else if (!p.foundDate) say += "Mình không thấy ngày nên tạm để hôm nay. Bạn sửa lại ngày giờ nếu cần:";
         else say += "Câu này hơi lạ, mình chưa chắc đã đọc đúng. Bạn kiểm tra kỹ ngày giờ nhé:";
         out.push({ from: "bot", text: say, preview: draftFromParsed(p) });
