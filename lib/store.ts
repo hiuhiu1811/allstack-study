@@ -3,10 +3,14 @@
 // - Chế độ thử (chưa cài Supabase): dữ liệu nằm trong trình duyệt (localStorage).
 
 import { supabase } from "./supabase.ts";
-import type { CalEvent, Note } from "./types.ts";
+import { safeFileName } from "./media.ts";
+import type { CalEvent, MediaItem, Note, StudySession } from "./types.ts";
 
 export type NewEvent = Omit<CalEvent, "id" | "user_id" | "created_at"> & { id?: string };
 export type NewNote = Omit<Note, "id" | "user_id" | "created_at"> & { id?: string };
+
+export type NewSession = Omit<StudySession, "id" | "user_id" | "created_at">;
+export type NewMedia = Pick<MediaItem, "kind" | "title" | "source" | "license">;
 
 export interface Store {
   listEvents(fromIso: string, toIso: string): Promise<CalEvent[]>;
@@ -20,6 +24,15 @@ export interface Store {
   insertNote(n: NewNote): Promise<Note>;
   updateNote(id: string, patch: Partial<Note>): Promise<void>;
   deleteNote(id: string): Promise<void>;
+  /** Phiên học bắt đầu từ mốc fromIso trở đi (chỉ phiên học, không có phiên nghỉ). */
+  listStudySessions(fromIso: string): Promise<StudySession[]>;
+  addStudySession(s: NewSession): Promise<void>;
+  /** Âm thanh / ảnh nền trong thư viện. Chế độ thử: luôn rỗng. */
+  listMedia(kind: MediaItem["kind"]): Promise<MediaItem[]>;
+  /** Chỉ quản trị viên. Chế độ thử: báo lỗi giải thích. */
+  addMedia(file: File, meta: NewMedia): Promise<MediaItem>;
+  deleteMedia(item: MediaItem): Promise<void>;
+  isAdmin(): Promise<boolean>;
 }
 
 function uuid(): string {
@@ -85,11 +98,51 @@ const supaStore: Store = {
     const { error } = await supabase!.from("notes").delete().eq("id", id);
     fail(error);
   },
+  async listStudySessions(fromIso) {
+    const { data, error } = await supabase!
+      .from("study_sessions")
+      .select("*")
+      .gte("started_at", fromIso)
+      .order("started_at");
+    fail(error);
+    return (data ?? []) as StudySession[];
+  },
+  async addStudySession(s) {
+    const { error } = await supabase!.from("study_sessions").insert(s);
+    fail(error);
+  },
+  async listMedia(kind) {
+    const { data, error } = await supabase!.from("media").select("*").eq("kind", kind).order("created_at");
+    fail(error);
+    return (data ?? []) as MediaItem[];
+  },
+  async addMedia(file, meta) {
+    const path = `${meta.kind}/${Date.now()}-${safeFileName(file.name)}`;
+    const up = await supabase!.storage.from("media").upload(path, file, { contentType: file.type || undefined });
+    fail(up.error);
+    const url = supabase!.storage.from("media").getPublicUrl(path).data.publicUrl;
+    const { data, error } = await supabase!.from("media").insert({ ...meta, path, url }).select().single();
+    if (error) {
+      await supabase!.storage.from("media").remove([path]); // dọn file mồ côi
+      throw new Error(error.message);
+    }
+    return data as MediaItem;
+  },
+  async deleteMedia(item) {
+    const { error } = await supabase!.from("media").delete().eq("id", item.id);
+    fail(error);
+    await supabase!.storage.from("media").remove([item.path]);
+  },
+  async isAdmin() {
+    const { data, error } = await supabase!.rpc("is_admin");
+    return !error && data === true;
+  },
 };
 
 // ---------------- Chế độ thử (trình duyệt) ----------------
 const EV_KEY = "allstack_demo_events";
 const NOTE_KEY = "allstack_demo_notes";
+const SESSION_KEY = "allstack_demo_study_sessions";
 
 function load<T>(key: string): T[] {
   if (typeof window === "undefined") return [];
@@ -146,6 +199,24 @@ const localStore: Store = {
   },
   async deleteNote(id) {
     save(NOTE_KEY, load<Note>(NOTE_KEY).filter((n) => n.id !== id));
+  },
+  async listStudySessions(fromIso) {
+    return load<StudySession>(SESSION_KEY).filter((s) => s.started_at >= fromIso).sort((a, b) => a.started_at.localeCompare(b.started_at));
+  },
+  async addStudySession(s) {
+    save(SESSION_KEY, [...load<StudySession>(SESSION_KEY), { ...s, id: uuid(), created_at: new Date().toISOString() }]);
+  },
+  async listMedia() {
+    return [];
+  },
+  async addMedia() {
+    throw new Error("Chế độ thử chưa nối Supabase nên chưa tải file lên được.");
+  },
+  async deleteMedia() {
+    throw new Error("Chế độ thử chưa nối Supabase.");
+  },
+  async isAdmin() {
+    return false;
   },
 };
 

@@ -1,7 +1,7 @@
 # AllStack
 
 Website hỗ trợ học tập và công việc: lịch cá nhân, nhập lịch bằng chat (không dùng AI), biên bản họp, ghi chú.
-Các phần Nhóm, Công cụ, Khóa học, Pomodoro sẽ làm ở các giai đoạn sau.
+Các phần Nhóm, Công cụ, Khóa học sẽ làm ở các giai đoạn sau.
 
 Web chạy tại: https://allstack-study.vercel.app
 
@@ -29,3 +29,16 @@ Chưa điền biến môi trường thì web chạy ở **chế độ thử**: d
 - `lib/events.ts`: thêm/sửa/hủy/xóa sự kiện, sự kiện lặp
 - `lib/store.ts`: lưu dữ liệu (Supabase hoặc trình duyệt)
 - `app/lich`, `app/nhap-lich`, `app/ghi-chu`: các trang
+
+## Pomodoro và thống kê học (/pomodoro)
+- Đồng hồ đếm theo mốc giờ thật, chuông Web Audio, tiếng ồn trắng/hồng/nâu tạo bằng code, chế độ toàn màn hình (⛶), thống kê 7 ngày, theo môn, chuỗi ngày.
+- Sau phiên học, phiên nghỉ tự chạy; hết nghỉ thì chờ bấm Bắt đầu. Chỉ phiên học được ghi (bảng `study_sessions`); bỏ giữa chừng vẫn ghi nếu đã học từ 1 phút.
+- Cần chạy `supabase/03-pomodoro.sql` (Supabase > SQL Editor). Chế độ thử vẫn dùng được, phiên học lưu trong trình duyệt; thư viện âm thanh/ảnh chỉ có khi nối Supabase.
+
+## Quản trị âm thanh và ảnh nền (/quan-tri/am-thanh)
+Chỉ quản trị viên. Tự thêm mình: đăng nhập web một lần, rồi trong Supabase > SQL Editor chạy
+(thay email bằng email đăng nhập của bạn):
+
+    insert into public.admins (user_id) select id from auth.users where email = 'email-cua-ban@gmail.com' on conflict do nothing;
+
+Mỗi file phải có Tên, Nguồn, Giấy phép (CC0 hoặc Pixabay License). Gợi ý nơi lấy file: Pixabay, Freesound (lọc CC0), Wikimedia Commons, Free Music Archive (lọc CC0).

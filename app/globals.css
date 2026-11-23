@@ -300,3 +300,22 @@
 .center{display:grid;place-items:center;min-height:40vh;color:var(--muted)}
 .wk-time{font-size:10.5px;color:var(--muted);margin-right:3px}
 .week .ev{white-space:normal}
+
+/* ---------- Pomodoro ---------- */
+.pomo-stage{max-width:760px;margin:0 auto;text-align:center}
+.pomo-set{text-align:left;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:8px}
+.pomo-set label{display:inline-flex;align-items:center;gap:6px}
+.pomo-phase{font-weight:700;color:var(--green);margin-top:6px}
+.pomo-phase.short,.pomo-phase.long{color:var(--blue)}
+.pomo-clock{font-size:96px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1;letter-spacing:2px}
+.pomo-subj{color:var(--muted);margin-top:2px}
+.pomo-stage.fs{position:fixed;inset:0;z-index:100;max-width:none;margin:0;border:0;border-radius:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;overflow:auto}
+.pomo-stage.fs .pomo-set{display:none}
+.pomo-stage.fs .pomo-phase,.pomo-stage.fs .pomo-subj{color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+.pomo-stage.fs .pomo-clock{font-size:min(26vw,220px);text-shadow:0 2px 12px rgba(0,0,0,.5)}
+.pomo-stage.fs .btn{background:rgba(255,255,255,.85)}
+.pomo-stage.fs .btn.primary{background:var(--blue)}
+.pomo-credit{position:absolute;right:10px;bottom:8px;font-size:11px;color:rgba(255,255,255,.8);text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.swatch{width:64px;height:44px;border-radius:6px;border:2px solid var(--line);cursor:pointer;color:#fff;font:inherit;font-size:11px;padding:0;display:grid;place-items:end center;text-shadow:0 1px 3px rgba(0,0,0,.7)}
+.swatch.on{border-color:var(--blue)}
+@media(max-width:560px){.pomo-clock{font-size:64px}}

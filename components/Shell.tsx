@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { store } from "@/lib/store.ts";
 import { useAuth } from "./AuthProvider.tsx";
 
 const AREAS = [
@@ -12,12 +13,12 @@ const AREAS = [
   { href: "/sap-co?k=khoahoc", label: "Khóa học", match: () => false },
 ];
 
-const SUB = [
+const SUB: { href: string; label: string; soon?: boolean }[] = [
   { href: "/", label: "Hôm nay" },
   { href: "/lich", label: "Lịch" },
   { href: "/nhap-lich", label: "Nhập lịch" },
   { href: "/ghi-chu", label: "Ghi chú" },
-  { href: "/sap-co?k=pomodoro", label: "Pomodoro", soon: true },
+  { href: "/pomodoro", label: "Pomodoro" },
 ];
 
 const PUBLIC = ["/dang-nhap", "/sap-co"];
@@ -27,12 +28,19 @@ export function Shell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { user, loading, demo, signOut } = useAuth();
   const [menu, setMenu] = useState(false);
+  const [admin, setAdmin] = useState(false);
   const isPublic = PUBLIC.some((p) => path.startsWith(p));
   const needLogin = !demo && !loading && !user && !isPublic;
 
   useEffect(() => {
     if (needLogin) router.replace("/dang-nhap");
   }, [needLogin, router]);
+
+  // Chỉ quản trị viên mới thấy mục tải âm thanh/ảnh
+  useEffect(() => {
+    if (user && !demo) store.isAdmin().then(setAdmin).catch(() => setAdmin(false));
+    else setAdmin(false);
+  }, [user, demo]);
 
   useEffect(() => {
     const close = () => setMenu(false);
@@ -66,6 +74,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 <div className="muted" style={{ padding: "6px 10px", fontSize: 12.5 }}>{name}</div>
                 <div className="sep" />
                 <Link href="/sap-co?k=caidat" onClick={() => setMenu(false)}>⚙ Cài đặt và nhắc việc</Link>
+                {admin && <Link href="/quan-tri/am-thanh" onClick={() => setMenu(false)}>🎵 Quản trị âm thanh và ảnh</Link>}
                 {!demo && (
                   <>
                     <div className="sep" />
@@ -88,7 +97,7 @@ export function Shell({ children }: { children: ReactNode }) {
         {showSub && (
           <nav className="subnav">
             {SUB.map((s) => (
-              <Link key={s.label} href={s.href} className={(path === s.href ? "on" : "") + (s.soon ? " soon" : "")}>
+              <Link key={s.label} href={s.href} className={(path === s.href || (s.href !== "/" && path.startsWith(s.href)) ? "on" : "") + (s.soon ? " soon" : "")}>
                 {s.label}
               </Link>
             ))}

@@ -43,3 +43,26 @@ export const REMIND_OPTIONS: [number | null, string][] = [
   [120, "2 tiếng"],
   [1440, "1 ngày"],
 ];
+
+/** Một phiên học (chỉ ghi phiên học, không ghi phiên nghỉ). */
+export interface StudySession {
+  id: string;
+  user_id?: string;
+  subject: string;
+  started_at: string; // ISO
+  minutes: number;
+  completed: boolean;
+  created_at?: string;
+}
+
+/** Âm thanh hoặc ảnh nền trong thư viện (bảng media). */
+export interface MediaItem {
+  id: string;
+  kind: "sound" | "image";
+  title: string;
+  source: string;
+  license: string;
+  path: string;
+  url: string;
+  created_at?: string;
+}

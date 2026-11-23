@@ -8,6 +8,7 @@ import { conflictIds } from "@/lib/conflicts.ts";
 import { addDays, formatVN, toIso, ymd } from "@/lib/dates.ts";
 import { daysOf, timeLabel } from "@/lib/events.ts";
 import { store } from "@/lib/store.ts";
+import { formatMinutes, minutesOnDay } from "@/lib/pomodoro.ts";
 import { KIND_CLASS, KIND_LABEL, type CalEvent } from "@/lib/types.ts";
 
 export default function TodayPage() {
@@ -16,13 +17,15 @@ export default function TodayPage() {
   const [events, setEvents] = useState<CalEvent[]>([]);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [q, setQ] = useState("");
+  const [studied, setStudied] = useState(0);
 
   const load = useCallback(async () => {
     setEvents(await store.listEvents(toIso(today, null), toIso(addDays(today, 8), null)).catch(() => []));
   }, [today]);
   useEffect(() => {
     load();
-  }, [load]);
+    store.listStudySessions(toIso(today, null)).then((s) => setStudied(minutesOnDay(s, today))).catch(() => {});
+  }, [load, today]);
 
   const clashes = useMemo(() => conflictIds(events), [events]);
   const todays = events.filter((e) => daysOf(e).includes(today));
@@ -54,6 +57,9 @@ export default function TodayPage() {
           <h2>Hạn nộp 7 ngày tới</h2>
           {deadlines.length === 0 ? <div className="muted">Không có hạn nộp nào.</div> : <ul className="todo">{deadlines.map((e) => <Row key={e.id} e={e} showDate />)}</ul>}
         </div>
+      </div>
+      <div className="muted" style={{ marginTop: 10 }}>
+        ⏱ Hôm nay đã học {studied} phút{studied >= 60 ? ` (${formatMinutes(studied)})` : ""}. <Link href="/pomodoro">Mở Pomodoro →</Link>
       </div>
       <div className="card" style={{ marginTop: 12 }}>
         <h2>Nhập nhanh</h2>
