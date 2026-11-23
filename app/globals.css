@@ -290,7 +290,7 @@
 .day.drop-on{background:#eef4ff}
 .modal.wide{width:520px}
 .modal h3{margin:0 0 10px;font-size:16px}
-.modal .f input,.modal .f select,.modal .f textarea,.preview .f input,.preview .f select{width:100%}
+.modal .f input:not([type=checkbox]),.modal .f select,.modal .f textarea,.preview .f input:not([type=checkbox]),.preview .f select{width:100%;min-width:0}
 .modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
 .choice{display:grid;gap:6px}
 .choice .btn{text-align:left}
@@ -299,3 +299,4 @@
 .notecard pre{white-space:pre-wrap;font:inherit;margin:6px 0 0;line-height:1.5}
 .center{display:grid;place-items:center;min-height:40vh;color:var(--muted)}
 .wk-time{font-size:10.5px;color:var(--muted);margin-right:3px}
+.week .ev{white-space:normal}
