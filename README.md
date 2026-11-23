@@ -1,7 +1,7 @@
 # AllStack
 
 Website hỗ trợ học tập và công việc: lịch cá nhân, nhập lịch bằng chat (không dùng AI), biên bản họp, ghi chú.
-Các phần Nhóm, Công cụ, Khóa học sẽ làm ở các giai đoạn sau.
+Có đăng nhập Google, hồ sơ/vai trò, nhắc việc qua email và Telegram, bot Telegram. Các phần Nhóm, Công cụ, Khóa học sẽ làm ở các giai đoạn sau.
 
 Web chạy tại: https://allstack-study.vercel.app
 
@@ -42,3 +42,15 @@ Chỉ quản trị viên. Tự thêm mình: đăng nhập web một lần, rồi
     insert into public.admins (user_id) select id from auth.users where email = 'email-cua-ban@gmail.com' on conflict do nothing;
 
 Mỗi file phải có Tên, Nguồn, Giấy phép (CC0 hoặc Pixabay License). Gợi ý nơi lấy file: Pixabay, Freesound (lọc CC0), Wikimedia Commons, Free Music Archive (lọc CC0).
+
+## Nền tảng: đăng nhập Google, nhắc việc, bot Telegram
+File SQL: `supabase/02-nen-tang.sql` (chạy một lần, chạy lại không sao). Tạo bảng `profiles` (hồ sơ + vai trò member/moderator/admin), `reminder_log`, `telegram_link_codes`, `telegram_drafts`, `ai_usage`, `app_config`, hàm `is_admin()` dùng chung và lịch gọi nhắc việc mỗi 5 phút bằng pg_cron + pg_net.
+
+Biến môi trường mới (ghi chú cách lấy trong `.env.example`): `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `NEXT_PUBLIC_TELEGRAM_BOT_NAME`. Tùy chọn: `GEMINI_API_KEY` (AI dự phòng, mặc định tắt), `SITE_URL`.
+
+- **/cai-dat**: kênh nhắc (email, Telegram), email tóm tắt buổi sáng, kết nối/ngắt Telegram, tải dữ liệu JSON, xóa tài khoản (xác nhận 2 lần).
+- **/api/cron/nhac** (cần `Authorization: Bearer <CRON_SECRET>`): nhắc sự kiện có "Nhắc trước" đến giờ, mỗi sự kiện đúng một lần (ghi `reminder_log`); gửi email tóm tắt lịch hôm nay khi đến giờ đã chọn (chỉ gửi nếu hôm đó có lịch; lỡ lượt quét thì gửi bù trong 2 tiếng). `lib/notify.ts` có hàm `sendReminder(userId, text)` để phần Nhóm dùng lại.
+- **Bot Telegram** (`/api/telegram`): nhắn câu tự nhiên → tóm tắt + nút Lưu / Sửa trên web / Bỏ (báo trùng giờ); gửi file .docx → lưu biên bản và chọn mốc đưa vào lịch; lệnh `/homnay`, `/tuan` (7 ngày tới), `/viec`. Kết nối bằng nút ở /cai-dat (mã dùng một lần, hết hạn 10 phút). Đăng ký webhook: quản trị viên bấm nút ở /cai-dat, hoặc mở `/api/telegram/dang-ky?khoa=<TELEGRAM_WEBHOOK_SECRET>` một lần.
+- Giờ nhắc và giờ trong bot tính theo múi giờ trong hồ sơ (mặc định Asia/Ho_Chi_Minh), không phụ thuộc giờ máy chủ.
+- Cấp quyền admin cho mình: `update public.profiles set role = 'admin' where email = 'email-cua-ban@gmail.com';`
+- Chạy lại bước hẹn giờ/đổi khóa: `insert into public.app_config (key, value) values ('cron_url','https://<web>/api/cron/nhac'), ('cron_secret','<CRON_SECRET>') on conflict (key) do update set value = excluded.value;`

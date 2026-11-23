@@ -5,7 +5,6 @@ const NAMES: Record<string, string> = {
   congcu: "Công cụ (chuẩn hóa tiểu luận, văn bản hành chính)",
   khoahoc: "Khóa học và lộ trình học",
   pomodoro: "Pomodoro và thống kê học",
-  caidat: "Cài đặt, nhắc việc qua email/Telegram",
 };
 
 export default async function Soon({ searchParams }: { searchParams: Promise<{ k?: string }> }) {

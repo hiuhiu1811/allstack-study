@@ -221,3 +221,21 @@ const localStore: Store = {
 };
 
 export const store: Store = supabase ? supaStore : localStore;
+
+// ---------------- Tải toàn bộ dữ liệu ----------------
+/** Gom mọi dữ liệu của người dùng để tải về dạng JSON. */
+export async function exportAll(): Promise<Record<string, unknown>> {
+  const out: Record<string, unknown> = { exported_at: new Date().toISOString() };
+  if (supabase) {
+    for (const t of ["profiles", "events", "notes", "study_sessions"]) {
+      const { data, error } = await supabase.from(t).select("*");
+      if (error) throw new Error(`${t}: ${error.message}`);
+      out[t] = data ?? [];
+    }
+  } else {
+    out.events = load<CalEvent>(EV_KEY);
+    out.notes = load<Note>(NOTE_KEY);
+    out.study_sessions = load<StudySession>(SESSION_KEY);
+  }
+  return out;
+}

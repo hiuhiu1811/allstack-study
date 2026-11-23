@@ -12,15 +12,22 @@ drop policy if exists "admin xem chinh minh" on public.admins;
 create policy "admin xem chinh minh" on public.admins
   for select using (auth.uid() = user_id);
 
--- Nếu sau này có hàm is_admin() ở phần khác thì thống nhất lại một hàm.
+-- Hàm is_admin() dùng chung (cùng định nghĩa với supabase/02-nen-tang.sql):
+-- là quản trị viên khi role = 'admin' trong bảng profiles (nếu đã chạy file 02) hoặc có trong bảng admins.
 create or replace function public.is_admin()
 returns boolean
-language sql
+language plpgsql
 stable
 security definer
 set search_path = public
 as $$
-  select exists (select 1 from public.admins where user_id = auth.uid());
+begin
+  if to_regclass('public.profiles') is not null
+     and exists (select 1 from public.profiles where id = auth.uid() and role = 'admin') then
+    return true;
+  end if;
+  return exists (select 1 from public.admins where user_id = auth.uid());
+end;
 $$;
 grant execute on function public.is_admin() to anon, authenticated;
 

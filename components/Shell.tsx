@@ -73,7 +73,7 @@ export function Shell({ children }: { children: ReactNode }) {
               <div className={"menu" + (menu ? " open" : "")}>
                 <div className="muted" style={{ padding: "6px 10px", fontSize: 12.5 }}>{name}</div>
                 <div className="sep" />
-                <Link href="/sap-co?k=caidat" onClick={() => setMenu(false)}>⚙ Cài đặt và nhắc việc</Link>
+                <Link href="/cai-dat" onClick={() => setMenu(false)}>⚙ Cài đặt và nhắc việc</Link>
                 {admin && <Link href="/quan-tri/am-thanh" onClick={() => setMenu(false)}>🎵 Quản trị âm thanh và ảnh</Link>}
                 {!demo && (
                   <>

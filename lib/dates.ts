@@ -1,4 +1,7 @@
 // Các hàm ngày giờ dùng chung. Ngày luôn ở dạng chuỗi "YYYY-MM-DD" theo giờ máy người dùng.
+// Phần chạy trên máy chủ truyền thêm tz (múi giờ của người dùng) để không bị lệch giờ UTC.
+
+import { dateIn, timeIn, zonedToIso } from "./tz.ts";
 
 export function pad(n: number): string {
   return n < 10 ? "0" + n : String(n);
@@ -43,7 +46,8 @@ export function fromMinutes(min: number): string {
 }
 
 /** Gộp ngày + giờ thành mốc thời gian ISO (theo múi giờ máy). */
-export function toIso(date: string, time: string | null): string {
+export function toIso(date: string, time: string | null, tz?: string): string {
+  if (tz) return zonedToIso(date, time, tz);
   const d = parseYmd(date);
   if (time) {
     const [h, m] = time.split(":").map(Number);
@@ -52,11 +56,13 @@ export function toIso(date: string, time: string | null): string {
   return d.toISOString();
 }
 
-export function isoDate(iso: string): string {
+export function isoDate(iso: string, tz?: string): string {
+  if (tz) return dateIn(new Date(iso).getTime(), tz);
   return ymd(new Date(iso));
 }
 
-export function isoTime(iso: string): string {
+export function isoTime(iso: string, tz?: string): string {
+  if (tz) return timeIn(new Date(iso).getTime(), tz);
   const d = new Date(iso);
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
